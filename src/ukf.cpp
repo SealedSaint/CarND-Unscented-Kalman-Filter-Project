@@ -12,8 +12,13 @@ UKF::UKF() {
 	use_laser = true;  // if this is false, laser measurements will be ignored (except during init)
 	use_radar = true;  // if this is false, radar measurements will be ignored (except during init)
 
-	x = VectorXd(5);  // initial state vector
-	P = MatrixXd(5, 5);  // initial covariance matrix
+	n_x = 5;
+	n_aug = 7;
+	n_z_rad = 3;
+	n_z_las = 2;
+
+	x = VectorXd(n_x);  // initial state vector
+	P = MatrixXd(n_x, n_x);  // initial covariance matrix
 
 	// TODO: Adjust these
 	std_a = 30;  // Process noise standard deviation longitudinal acceleration in m/s^2
@@ -32,21 +37,41 @@ UKF::UKF() {
 	Hint: one or more values initialized above might be wildly off...
 	*/
 
-	n_z_rad = 3;
-	n_z_las = 2;
+
+
+
+	// set weights
 }
 
 UKF::~UKF() {}
 
-void UKF::ProcessMeasurement(MeasurementPackage meas_package) {
+void UKF::ProcessMeasurement(MeasurementPackage measurement_package) {
 	/* TODO:
 		* Complete this function! Make sure you switch between lidar and radar measurements.
 	*/
 
 	is_initialized = true;
 
-	// set n_z
+	float Dt = (measurement_package.timestamp - last_time) / 1000000;
+
+	MatrixXd Xsig_pred = MatrixXd(n_x, 2 * n_aug + 1);
+	VectorXd x_pred = VectorXd(n_x);
+	MatrixXd P_pred = MatrixXd(n_x, n_x);
+	Predict(Dt, &Xsig_pred, &x_pred, &P_pred);  // This sets the three values above
+
+	Update();
+
+	// TODO: set n_z based on measurement received
+
+	if(measurement_package.sensor_type == MeasurementPackage::LASER) {
+
+	}
+	else if(measurement_package.sensor_type == MeasurementPackage::RADAR) {
+		UpdateRadar(Xsig_pred, x_pred, P_pred, measurement_package.raw_measurements)
+	}
 }
+
+// PREDICTION STEP
 
 MatrixXd UKF::GenerateAugmentedSigmaPoints() {
 	VectorXd x_aug = VectorXd(7);  // augmented mean vector
@@ -136,19 +161,11 @@ MatrixXd UKF::PredictSigmaPoints(MatrixXd Xsig_aug, float Dt) {
 void UKF::PredictMeanAndCovariance(MatrixXd Xsig_pred, VectorXd* x_pred_out, MatrixXd* P_pred_out) {
 	VectorXd x_pred = VectorXd(n_x);  // predicted state vector
 	MatrixXd P_pred = MatrixXd(n_x, n_x);  // predicted covariance matrix
-	VectorXd weights = VectorXd(2 * n_aug + 1);
 
-	// calculate weights and create predicted state mean
+	// create predicted state mean
 	x.fill(0);
 	for(int i = 0; i < Xsig_pred.cols(); i++) {
-		float w;
-		if(i == 0)
-			w = lambda / (lambda + n_aug);
-		else
-			w = 1 / (2 * (lambda + n_aug));
-
-		weights(i) = w;
-		x_pred += w * Xsig_pred.col(i);
+		x_pred += weights(i) * Xsig_pred.col(i);
 	}
 
 	// predict state covariance matrix
@@ -168,26 +185,31 @@ void UKF::PredictMeanAndCovariance(MatrixXd Xsig_pred, VectorXd* x_pred_out, Mat
 	*P_pred_out = P_pred;
 }
 
-void UKF::Prediction(double Dt) {
+void UKF::Predict(double Dt, MatrixXd* Xsig_pred_out, VectorXd* x_pred_out, MatrixXd* P_pred_out) {
 	/* TODO: Complete this function:
 		* Estimate the object's location.
 		* Modify the state vector, x.
 		* Predict sigma points, the state, and the state covariance matrix.
 	*/
 
-	// Generate (Augmented) Sigma points
+	// Generate (Augmented) Sigma point representation of previous state
 	MatrixXd Xsig_aug = GenerateAugmentedSigmaPoints();
 
-	// Predict Sigma points from augmented sigma points
+	// Predict Sigma points (for time k+1) from augmented sigma points (for time k)
 	MatrixXd Xsig_pred = PredictSigmaPoints(Xsig_aug, Dt);
+	*Xsig_pred_out = Xsig_pred;
 
 	// Predict mean and covariance from predicted sigma points
 	VectorXd x_pred = VectorXd(n_x);
-    MatrixXd P_pred = MatrixXd(n_x, n_x);
-    PredictMeanAndCovariance(&x_pred, &P_pred);
+	MatrixXd P_pred = MatrixXd(n_x, n_x);
+    PredictMeanAndCovariance(Xsig_pred, &x_pred, &P_pred);
+	*x_pred_out = x_pred;
+	*P_pred_out = P_pred;
 }
 
-void UKF::UpdateLidar(MeasurementPackage meas_package) {
+// UPDATE LIDAR
+
+void UKF::UpdateLidar(MeasurementPackage measurement_package) {
 	/* TODO:
 		* Use lidar data to update the belief about the object's position.
 		* Modify the state vector, x_, and covariance, P_.
@@ -200,6 +222,8 @@ void UKF::UpdateLidar(MeasurementPackage meas_package) {
 	// Update state
 
 }
+
+// UPDATE RADAR
 
 VectorXd UKF::RadarMeasurementModelPrediction(VectorXd x_sig_pred) {
 	float x = x_sig_pred(0);
@@ -231,13 +255,6 @@ void UKF::PredictRadarMeanAndCovariance(MatrixXd Zsig_pred, VectorXd* z_pred_out
 
 	// calculate predicted measurement mean
 
-	// set weights
-	VectorXd weights = VectorXd(2 * n_aug + 1);
-	weights(0) = lambda / (lambda + n_aug);
-	for (int i = 1; i < weights.size(); i++) {
-		weights(i) = 1 / (2 * (n_aug + lambda));
-	}
-
 	z_pred.fill(0);
 	for(int i = 0; i < Zsig_pred.cols(); i++) {
 		z_pred += weights(i) * Zsig_pred.col(i);
@@ -268,7 +285,7 @@ void UKF::PredictRadarMeanAndCovariance(MatrixXd Zsig_pred, VectorXd* z_pred_out
 	*S_pred_out = S_pred;
 }
 
-void UKF::UpdateRadar(MatrixXd Xsig_pred, MeasurementPackage meas_package) {
+void UKF::UpdateRadar(MatrixXd Xsig_pred, VectorXd x_pred, MatrixXd P_pred, VectorXd z) {
 	/* TODO:
 		* Use radar data to update the belief about the object's position.
 		* Modify the state vector, x_, and covariance, P_.
@@ -281,7 +298,35 @@ void UKF::UpdateRadar(MatrixXd Xsig_pred, MeasurementPackage meas_package) {
 	// Predict measurement mean and covariance
 	VectorXd z_pred = VectorXd(n_z);
 	MatrixXd S_pred = MatrixXd(n_z, n_z);
-	PredictRadarMeanAndCovariance(Zsig_pred, z_pred, S_pred);
+	PredictRadarMeanAndCovariance(Zsig_pred, &z_pred, &S_pred);
 
 	// Update state
+
+	// calculate cross correlation matrix
+	MatrixXd Tc = MatrixXd(n_x, n_z);
+	Tc.fill(0);
+	for(int i = 0; i < Zsig_pred.cols(); i++) {
+		VectorXd x_diff = Xsig_pred.col(i) - x_pred;
+		// Normalize angle
+		while(x_diff(3) > M_PI) x_diff(3) -= 2 * M_PI;
+		while(x_diff(3) < -M_PI) x_diff(3) += 2 * M_PI;
+
+		VectorXd z_diff = Zsig_pred.col(i) - z_pred;
+		// Normalize angle
+		while(z_diff(1) > M_PI) z_diff(1) -= 2 * M_PI;
+		while(z_diff(1) < -M_PI) z_diff(1) += 2 * M_PI;
+
+		Tc += weights(i) * x_diff * z_diff.transpose();
+	}
+
+	// calculate Kalman gain K
+	MatrixXd K = Tc * S_pred.inverse();
+
+	VectorXd z_diff = z - z_pred;
+	// normalize angle
+	while(z_diff(1) > M_PI) z_diff(1) -= 2 * M_PI;
+	while(z_diff(1) < -M_PI) z_diff(1) += 2 * M_PI;
+
+	x = x_pred + K * z_diff;
+	P = P_pred - K * S_pred * K.transpose();
 }

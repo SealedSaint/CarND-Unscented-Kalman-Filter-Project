@@ -27,7 +27,7 @@ public:
 	MatrixXd P;
 
 	// time when the state is true, in us
-	long long time_us;
+	long long last_time;
 
 	// Process noise standard deviation longitudinal acceleration in m/s^2
 	double std_a;
@@ -68,9 +68,9 @@ public:
 	virtual ~UKF();
 
 	/* ProcessMeasurement
-	 * @param meas_package The latest measurement data of either radar or laser
+	 * @param measurement_package - latest measurement data (either radar or laser)
 	*/
-	void ProcessMeasurement(MeasurementPackage meas_package);
+	void ProcessMeasurement(MeasurementPackage measurement_package);
 
 	// Generate augmented sigma point representation of current state (x and P)
 	MatrixXd GenerateAugmentedSigmaPoints();
@@ -89,17 +89,20 @@ public:
 	*/
 	MatrixXd PredictSigmaPoints(MatrixXd Xsig_aug, float Dt);
 
-	/* Fills out predicted state and covariance (x_pred and P_pred) from the predicted sigma points (Xsig_pred)
+	/* Predicts state mean and covariance from predicted sigma points (Xsig_pred)
 	 * @param {MatrixXd} Xsig_pred - predicted sigma points
-	 * @param {VectorXd*} x_pred - predicted state mean to be filled out
-	 * @param {MatrixXd*} P_pred - predicted covariance to be filled out
+	 * @param {VectorXd*} x_pred_out - predicted state mean to be filled out
+	 * @param {MatrixXd*} P_pred_out - predicted state covariance to be filled out
 	*/
 	void PredictMeanAndCovariance(MatrixXd Xsig_pred, VectorXd* x_pred_out, MatrixXd* P_pred_out);
 
-	/* Predicts sigma points, the state, and the state covariance matrix
+	/* Predicts sigma points, state mean, and state covariance matrix
 	 * @param Dt - Time between k and k+1 in seconds
+	 * @param {MatrixXd*} Xsig_pred_out - predicted sigma points to be filled out
+	 * @param {VectorXd*} x_pred_out - predicted state mean to be filled out
+	 * @param {MatrixXd*} P_pred_out - predicted state covariance to be filled out
 	*/
-	void Prediction(double Dt);
+	void Predict(double Dt, MatrixXd* Xsig_pred_out, VectorXd* x_pred_out, MatrixXd* P_pred_out);
 
 	/* Updates the state and the state covariance matrix using a laser measurement
 	 * @param meas_package The measurement at k+1
@@ -125,10 +128,13 @@ public:
 	*/
 	void PredictRadarMeanAndCovariance(MatrixXd Zsig_pred, VectorXd* z_pred_out, MatrixXd* S_pred_out);
 
-	/* Updates the state and the state covariance matrix using a radar measurement
-	 * @param meas_package The measurement at k+1
+	/* Updates the state mean and covariance (x and P) using a radar measurement and predicted values for the elapsed time
+	 * @param {MatrixXd} Xsig_pred - predicted state sigma points for the elapsed time
+	 * @param {VectorXd} x_pred - predicted mean
+	 * @param {MatrixXd} P_pred - predicted covariance
+	 * @param {VectorXd} z - new radar measurement
 	*/
-	void UpdateRadar(MeasurementPackage meas_package);
+	void UpdateRadar(MatrixXd Xsig_pred, VectorXd x_pred, MatrixXd P_pred, VectorXd z);
 
 };
 
