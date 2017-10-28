@@ -25,10 +25,6 @@ public:
 	VectorXd x;
 	// state covariance matrix
 	MatrixXd P;
-	// augmented sigma points matrix
-	MatrixXd Xsig_aug;
-	// predicted sigma points matrix
-	MatrixXd Xsig_pred;
 
 	// time when the state is true, in us
 	long long time_us;
@@ -70,8 +66,8 @@ public:
 	*/
 	void ProcessMeasurement(MeasurementPackage meas_package);
 
-	// void GenerateSigmaPoints(MatrixXd* Xsig_out);
-	void GenerateAugmentedSigmaPoints(MatrixXd* Xsig_out);
+	// Generate augmented sigma point representation of current state (x and P)
+	MatrixXd GenerateAugmentedSigmaPoints();
 
 	/* Passes the augmented sigma point vector Xsig_aug through the process model
 	 * @param {VectorXd} Xsig_aug - augmented sigma points to be passed through the process model
@@ -86,6 +82,13 @@ public:
 	 * return {MatrixXd} - predicted sigma points
 	*/
 	MatrixXd PredictSigmaPoints(MatrixXd Xsig_aug, float Dt);
+
+	/* Fills out predicted state and covariance (x_pred and P_pred) from the predicted sigma points (Xsig_pred)
+	 * @param {MatrixXd} Xsig_pred - predicted sigma points
+	 * @param {VectorXd*} x_pred - predicted state to be filled out
+	 * @param {MatrixXd*} P_pred - predicted covariance to be filled out
+	*/
+	void PredictMeanAndCovariance(MatrixXd Xsig_pred, VectorXd* x_pred_out, MatrixXd* P_pred_out);
 
 	/* Predicts sigma points, the state, and the state covariance matrix
 	 * @param Dt - Time between k and k+1 in seconds
