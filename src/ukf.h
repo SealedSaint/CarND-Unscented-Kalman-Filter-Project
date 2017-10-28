@@ -53,6 +53,12 @@ public:
 	int n_x;
 	// Augmented state dimension
 	int n_aug;
+	// Laser measurement dimension
+	int n_z_las;
+	// Radar measurement dimension
+	int n_z_rad;
+	// Measurement dimension (will change based on measurement received)
+	int n_z;
 
 	// Sigma point spreading parameter
 	double lambda;
@@ -69,12 +75,12 @@ public:
 	// Generate augmented sigma point representation of current state (x and P)
 	MatrixXd GenerateAugmentedSigmaPoints();
 
-	/* Passes the augmented sigma point vector Xsig_aug through the process model
-	 * @param {VectorXd} Xsig_aug - augmented sigma points to be passed through the process model
+	/* Uses the process model to create predicted sigma points from augmented sigma points
+	 * @param {VectorXd} x_sig_aug - augmented sigma points to be passed through the process model
 	 * @param {float} Dt - elapsed time since last measurement
 	 * return {VectorXd} - predicted sigma points calculated from process model
 	*/
-	VectorXd ProcessModelPrediction(VectorXd Xsig_aug, float Dt);
+	VectorXd ProcessModelPrediction(VectorXd x_sig_aug, float Dt);
 
 	/* Gives predicted sigma points (through process model) based on augmented sigma points
 	 * @param {MatrixXd} Xsig_aug - augmented sigma points
@@ -85,7 +91,7 @@ public:
 
 	/* Fills out predicted state and covariance (x_pred and P_pred) from the predicted sigma points (Xsig_pred)
 	 * @param {MatrixXd} Xsig_pred - predicted sigma points
-	 * @param {VectorXd*} x_pred - predicted state to be filled out
+	 * @param {VectorXd*} x_pred - predicted state mean to be filled out
 	 * @param {MatrixXd*} P_pred - predicted covariance to be filled out
 	*/
 	void PredictMeanAndCovariance(MatrixXd Xsig_pred, VectorXd* x_pred_out, MatrixXd* P_pred_out);
@@ -99,6 +105,25 @@ public:
 	 * @param meas_package The measurement at k+1
 	*/
 	void UpdateLidar(MeasurementPackage meas_package);
+
+	/* Maps a predicted sigma points vector to Radar measurement space
+	 * @param {VectorXd} Xsig_pred - predicted sigma points to be passed through the Radar measurement model
+	 * return {VectorXd} - Radar sigma points (sigma points in Radar measurement space)
+	*/
+	VectorXd RadarMeasurementModelPrediction(VectorXd Xsig_pred);
+
+	/* Gives predicted sigma points mapped to Radar measurement space using Radar measurement model
+	 * @param {MatrixXd} Xsig_pred - predicted sigma points
+	 * return {MatrixXd} - Radar sigma points (sigma points in Radar measurement space)
+	*/
+	MatrixXd PredictRadarSigmaPoints(MatrixXd Xsig_pred);
+
+	/* Fills out predicted measurement mean and covariance (z_pred and S_pred) from the predicted measurement sigma points (Zsig_pred)
+	 * @param {MatrixXd} Zsig_pred - predicted measurement sigma points
+	 * @param {VectorXd*} z_pred - predicted measurement mean to be filled out
+	 * @param {MatrixXd*} S_pred - predicted measurement covariance to be filled out
+	*/
+	void PredictRadarMeanAndCovariance(MatrixXd Zsig_pred, VectorXd* z_pred_out, MatrixXd* S_pred_out);
 
 	/* Updates the state and the state covariance matrix using a radar measurement
 	 * @param meas_package The measurement at k+1
