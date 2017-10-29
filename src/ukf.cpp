@@ -20,6 +20,15 @@ UKF::UKF() {
 	x = VectorXd(n_x);  // initial state vector
 	P = MatrixXd(n_x, n_x);  // initial covariance matrix
 
+	int lambda = 3 - n_aug;  // spreading parameter
+
+	// Set the weights
+	VectorXd weights = VectorXd(2 * n_aug + 1);
+	for(int i = 0; i < weights.size(); i++) {
+		if(i == 0) weights(i) = lambda / (lambda + n_aug);
+		else weights(i) = 1 / (2 * (lambda + n_aug));
+	}
+
 	// TODO: Adjust these
 	std_a = 30;  // Process noise standard deviation longitudinal acceleration in m/s^2
 	std_yawdd = 30;  // Process noise standard deviation yaw acceleration in rad/s^2
@@ -30,17 +39,6 @@ UKF::UKF() {
 	std_rad_r = 0.3;  // Radar measurement noise standard deviation radius in m
 	std_rad_phi = 0.03;  // Radar measurement noise standard deviation angle in rad
 	std_rad_rd = 0.3;  // Radar measurement noise standard deviation radius change in m/s
-
-	/**
-	TODO:
-	Complete the initialization. See ukf.h for other member properties.
-	Hint: one or more values initialized above might be wildly off...
-	*/
-
-
-
-
-	// set weights
 }
 
 UKF::~UKF() {}
@@ -52,7 +50,8 @@ void UKF::ProcessMeasurement(MeasurementPackage measurement_package) {
 
 	is_initialized = true;
 
-	float Dt = (measurement_package.timestamp - last_time) / 1000000;
+	double Dt = (measurement_package.timestamp - last_time) / 1000000;
+	last_time = measurement_package.timestamp;
 
 	MatrixXd Xsig_pred = MatrixXd(n_x, 2 * n_aug + 1);
 	VectorXd x_pred = VectorXd(n_x);

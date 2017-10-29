@@ -61,7 +61,7 @@ public:
 	int n_z;
 
 	// Sigma point spreading parameter
-	double lambda;
+	int lambda;
 
 
 	UKF();
