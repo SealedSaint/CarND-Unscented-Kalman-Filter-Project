@@ -77,17 +77,17 @@ public:
 
 	/* Uses the process model to create predicted sigma points from augmented sigma points
 	 * @param {VectorXd} x_sig_aug - augmented sigma points to be passed through the process model
-	 * @param {float} Dt - elapsed time since last measurement
+	 * @param {double} Dt - elapsed time since last measurement
 	 * return {VectorXd} - predicted sigma points calculated from process model
 	*/
-	VectorXd ProcessModelPrediction(VectorXd x_sig_aug, float Dt);
+	VectorXd ProcessModelPrediction(VectorXd x_sig_aug, double Dt);
 
 	/* Gives predicted sigma points (through process model) based on augmented sigma points
 	 * @param {MatrixXd} Xsig_aug - augmented sigma points
-	 * @param {float} Dt - elapsed time since last measurement
+	 * @param {double} Dt - elapsed time since last measurement
 	 * return {MatrixXd} - predicted sigma points
 	*/
-	MatrixXd PredictSigmaPoints(MatrixXd Xsig_aug, float Dt);
+	MatrixXd PredictSigmaPoints(MatrixXd Xsig_aug, double Dt);
 
 	/* Predicts state mean and covariance from predicted sigma points (Xsig_pred)
 	 * @param {MatrixXd} Xsig_pred - predicted sigma points
