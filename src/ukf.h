@@ -104,10 +104,32 @@ public:
 	*/
 	void Predict(double Dt, MatrixXd* Xsig_pred_out, VectorXd* x_pred_out, MatrixXd* P_pred_out);
 
-	/* Updates the state and the state covariance matrix using a laser measurement
-	 * @param meas_package The measurement at k+1
+	/* Maps a predicted sigma points vector to Lidar measurement space
+	 * @param {VectorXd} Xsig_pred - predicted sigma points to be passed through the Lidar measurement model
+	 * return {VectorXd} - Lidar sigma points (sigma points in Lidar measurement space)
 	*/
-	void UpdateLidar(MeasurementPackage meas_package);
+	VectorXd LidarMeasurementModelPrediction(VectorXd Xsig_pred);
+
+	/* Gives predicted sigma points mapped to Lidar measurement space using Lidar measurement model
+	 * @param {MatrixXd} Xsig_pred - predicted sigma points
+	 * return {MatrixXd} - Lidar sigma points (sigma points in Lidar measurement space)
+	*/
+	MatrixXd PredictLidarSigmaPoints(MatrixXd Xsig_pred);
+
+	/* Fills out predicted measurement mean and covariance (z_pred and S_pred) from the predicted measurement sigma points (Zsig_pred)
+	 * @param {MatrixXd} Zsig_pred - predicted measurement sigma points
+	 * @param {VectorXd*} z_pred - predicted measurement mean to be filled out
+	 * @param {MatrixXd*} S_pred - predicted measurement covariance to be filled out
+	*/
+	void PredictLidarMeanAndCovariance(MatrixXd Zsig_pred, VectorXd* z_pred_out, MatrixXd* S_pred_out);
+
+	/* Updates the state mean and covariance (x and P) using a radar measurement and predicted values for the elapsed time
+	 * @param {MatrixXd} Xsig_pred - predicted state sigma points for the elapsed time
+	 * @param {VectorXd} x_pred - predicted mean
+	 * @param {MatrixXd} P_pred - predicted covariance
+	 * @param {VectorXd} z - new radar measurement
+	*/
+	void UpdateLidar(MatrixXd Xsig_pred, VectorXd x_pred, MatrixXd P_pred, VectorXd z);
 
 	/* Maps a predicted sigma points vector to Radar measurement space
 	 * @param {VectorXd} Xsig_pred - predicted sigma points to be passed through the Radar measurement model
